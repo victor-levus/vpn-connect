@@ -115,10 +115,36 @@ firebase deploy --only hosting
 
 Open `https://<project>.web.app` and sign in with the Google account in `ALLOWED_EMAILS`.
 
-### Updating later
+### Updating later (automatic)
 
-- **Backend:** push to Git, then on the VPS run `sudo bash /opt/vpn-connect/deploy/update.sh`
-- **Frontend:** `cd web && npm run build && firebase deploy --only hosting`
+Pushing to `main` deploys whatever changed, using GitHub Actions:
+
+| Workflow                                   | Runs when these change              | What it does                                                          |
+| ------------------------------------------ | ----------------------------------- | --------------------------------------------------------------------- |
+| `.github/workflows/deploy-backend.yml`     | `server/**`, `deploy/**`            | Builds in CI, SSHes to the VPS to run `update.sh`, checks the public health URL |
+| `.github/workflows/deploy-web.yml`         | `web/**`                            | Builds the dashboard and deploys it to Firebase Hosting               |
+
+Both can also be started by hand: **GitHub → Actions → the workflow → Run workflow**.
+
+**What the workflows need in GitHub (Settings → Secrets and variables → Actions):**
+
+| Name                         | Kind     | Value                                                         |
+| ---------------------------- | -------- | ------------------------------------------------------------- |
+| `VPS_HOST`                   | secret   | VPS IP address                                                |
+| `VPS_SSH_KEY`                | secret   | Private deploy key (ed25519, no passphrase)                    |
+| `VPS_KNOWN_HOSTS`            | secret   | Output of `ssh-keyscan <VPS IP>`                              |
+| `FIREBASE_SERVICE_ACCOUNT`   | secret   | JSON key of a service account with *Firebase Hosting Admin* and *API Keys Viewer* |
+| `VITE_API_URL`, `VITE_FIREBASE_*` | variable | Same values as `web/.env.example`                        |
+
+**The deploy key on the VPS is locked down.** Its line in `/root/.ssh/authorized_keys` uses
+`command="/usr/bin/bash /opt/vpn-connect/deploy/update.sh",restrict`. Whatever command GitHub sends,
+that key can only run the update script: no shell and no port forwarding.
+
+> Anyone who can push to `main` can change what `update.sh` runs as root on the VPS. Keep
+> two-factor authentication on the GitHub account, and don't give others write access to the repo.
+
+**Manual fallback:** on the VPS run `sudo bash /opt/vpn-connect/deploy/update.sh`. Locally,
+`cd web && npm run build && firebase deploy --only hosting`.
 
 ---
 

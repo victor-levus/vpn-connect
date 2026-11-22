@@ -1,0 +1,61 @@
+name: Deploy dashboard (Firebase Hosting)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+
+      # The Firebase web config is public by design (it ships in the bundle), so it lives in
+      # repository *variables*, not secrets. They're kept out of the repo only to avoid key-scanner noise.
+      - name: Write .env.production
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+        run: |
+          for v in VITE_API_URL VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID VITE_FIREBASE_APP_ID; do
+            [ -n "${!v}" ] || { echo "Missing repository variable $v"; exit 1; }
+            echo "$v=${!v}" >> .env.production
+          done
+          echo "VITE_AUTH_DISABLED=false" >> .env.production
+
+      - run: npm run build
+
+      - name: Deploy to Firebase Hosting
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx --yes firebase-tools@15.37.0 deploy --only hosting --project "${{ vars.VITE_FIREBASE_PROJECT_ID }}" --non-interactive
+          rm -f "$RUNNER_TEMP/sa.json"
