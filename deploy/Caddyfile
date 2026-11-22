@@ -2,7 +2,7 @@
 # Replace vpn-api.example.com with your API subdomain. Its DNS A record must point at the VPS
 # before Caddy starts, so Let's Encrypt can issue the certificate.
 vpn-api.example.com {
-	reverse_proxy 127.0.0.1:4000
+	reverse_proxy 127.0.0.1:4807
 	header -Server
 	log {
 		output file /var/log/caddy/vpn-api.log

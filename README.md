@@ -3,7 +3,7 @@
 A dashboard showing which peers on your WireGuard VPN are online.
 
 ```
-React app (Firebase Hosting) ──HTTPS + Firebase ID token──▶ Caddy :443 ──▶ Express API :4000 (VPS)
+React app (Firebase Hosting) ──HTTPS + Firebase ID token──▶ Caddy :443 ──▶ Express API :4807 (VPS)
                                                                             ├─ sudo wg show wg0 dump
                                                                             └─ SQLite via Prisma (names, notes, history)
 ```
@@ -39,7 +39,7 @@ cd server
 cp .env.example .env          # then set WG_MOCK=true, AUTH_DISABLED=true, WG_USE_SUDO=false
 npm install
 npx prisma migrate dev
-npm run dev                   # http://127.0.0.1:4000/api/health
+npm run dev                   # http://127.0.0.1:4807/api/health
 
 # Terminal 2: dashboard
 cd web
@@ -100,7 +100,7 @@ curl https://vpn-api.yourdomain.com/api/health      # → {"ok":true,...}
 
 **Firewall:** ports **80** and **443** (TCP) must be open, for Let's Encrypt and the API. If you use
 `ufw`, run `ufw allow 80/tcp && ufw allow 443/tcp`. Also check Interserver's control panel firewall, if
-you use one. The API itself listens only on `127.0.0.1:4000`.
+you use one. The API itself listens only on `127.0.0.1:4807`.
 
 ### 5. Frontend to Firebase Hosting
 

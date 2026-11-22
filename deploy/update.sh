@@ -22,7 +22,7 @@ echo "==> Applying database migrations"
 as_app "npm run db:deploy"
 
 PORT="$(grep -E '^PORT=' "$APP_DIR/server/.env" | cut -d= -f2 | tr -d '"[:space:]')"
-PORT="${PORT:-4000}"
+PORT="${PORT:-4807}"
 
 echo "==> Restarting service"
 systemctl restart vpn-connect

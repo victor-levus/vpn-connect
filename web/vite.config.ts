@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     // In development the API is reached through this proxy, so VITE_API_URL can stay empty.
     proxy: {
-      '/api': { target: 'http://127.0.0.1:4000', changeOrigin: true },
+      '/api': { target: 'http://127.0.0.1:4807', changeOrigin: true },
     },
   },
 })

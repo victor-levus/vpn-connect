@@ -18,7 +18,7 @@ const list = z
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   HOST: z.string().default('127.0.0.1'),
-  PORT: z.coerce.number().int().positive().default(4000),
+  PORT: z.coerce.number().int().positive().default(4807),
   DATABASE_URL: z.string().min(1),
   CORS_ORIGINS: list,
 
