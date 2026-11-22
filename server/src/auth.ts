@@ -38,15 +38,21 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const decoded = await auth.verifyIdToken(match[1], true)
+    // No revocation check (`checkRevoked`): that calls the Firebase Auth admin API, which needs a
+    // service-account credential we intentionally don't keep on the VPS. Tokens expire within 1h.
+    const decoded = await auth.verifyIdToken(match[1])
     const email = decoded.email?.toLowerCase()
     if (!email || !decoded.email_verified || !config.allowedEmails.has(email)) {
+      console.warn(`[auth] rejected ${email ?? decoded.uid}: not in ALLOWED_EMAILS or email not verified`)
       res.status(403).json({ error: 'This account is not allowed to use this dashboard' })
       return
     }
     req.user = { uid: decoded.uid, email }
     next()
-  } catch {
+  } catch (err) {
+    const code = (err as { code?: string }).code ?? 'unknown'
+    const message = err instanceof Error ? err.message.split('\n')[0] : String(err)
+    console.warn(`[auth] token rejected (${code}): ${message}`)
     res.status(401).json({ error: 'Invalid or expired token' })
   }
 }
