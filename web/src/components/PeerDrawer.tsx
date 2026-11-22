@@ -102,18 +102,18 @@ export function PeerDrawer({ peer, state, quiet, activityTimeoutSeconds, now, on
         className="relative flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-line bg-elevated shadow-pop"
       >
         {/* Hero */}
-        <div className="relative overflow-hidden border-b border-line px-6 pb-6 pt-5">
+        <div className="relative shrink-0 overflow-hidden border-b border-line px-6 py-6">
           <div
             className={`pointer-events-none absolute -right-16 -top-24 size-64 rounded-full blur-3xl ${
               state === 'online' ? 'bg-ok/20' : state === 'offline' ? 'bg-bad/15' : 'bg-idle/15'
             }`}
           />
-          <div className="relative flex justify-end">
+          <div className="absolute right-4 top-4 z-10">
             <IconButton label="Close" onClick={onClose}>
               <FiX className="size-5" />
             </IconButton>
           </div>
-          <div className="relative flex items-center gap-4">
+          <div className="relative flex items-center gap-4 pr-10">
             <Avatar label={label} seed={peer.publicKey} state={state} size="lg" />
             <div className="min-w-0">
               <h2 className="truncate text-xl font-semibold tracking-tight">{label}</h2>
@@ -124,7 +124,7 @@ export function PeerDrawer({ peer, state, quiet, activityTimeoutSeconds, now, on
           </div>
         </div>
 
-        <div className="space-y-6 px-6 py-6">
+        <div className="shrink-0 space-y-6 px-6 py-6">
           {quiet && (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
