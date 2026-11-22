@@ -1,0 +1,3 @@
+# /etc/sudoers.d/vpn-connect  (mode 0440, check with: visudo -cf /etc/sudoers.d/vpn-connect)
+# Lets the API's service user read WireGuard status — this exact command and nothing else.
+wgmon ALL=(root) NOPASSWD: /usr/bin/wg show wg0 dump

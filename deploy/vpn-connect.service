@@ -1,0 +1,23 @@
+[Unit]
+Description=VPN Connect API (WireGuard status)
+After=network-online.target wg-quick@wg0.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wgmon
+Group=wgmon
+WorkingDirectory=/opt/vpn-connect/server
+ExecStart=/usr/bin/node --env-file=.env dist/index.js
+Restart=always
+RestartSec=5
+
+# Hardening. NoNewPrivileges is deliberately NOT set: the service runs
+# `sudo -n /usr/bin/wg show wg0 dump`, and sudo needs setuid to work.
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/vpn-connect/server/data
+
+[Install]
+WantedBy=multi-user.target

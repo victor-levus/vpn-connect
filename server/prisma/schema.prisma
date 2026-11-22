@@ -1,0 +1,34 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// A WireGuard peer seen on the interface. The public key comes from `wg show`;
+/// everything else here is metadata the dashboard owns.
+model Peer {
+  publicKey    String        @id
+  /// Display name set from the dashboard. Overrides any name found in wg0.conf.
+  name         String?
+  notes        String?
+  online       Boolean       @default(false)
+  firstSeenAt  DateTime      @default(now())
+  lastOnlineAt DateTime?
+  events       StatusEvent[]
+}
+
+/// Written only when a peer flips between online and offline.
+model StatusEvent {
+  id        Int      @id @default(autoincrement())
+  publicKey String
+  peer      Peer     @relation(fields: [publicKey], references: [publicKey], onDelete: Cascade)
+  online    Boolean
+  at        DateTime @default(now())
+
+  @@index([publicKey, at])
+}
