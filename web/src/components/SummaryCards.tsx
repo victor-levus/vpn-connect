@@ -23,7 +23,7 @@ export function SummaryCards({ snapshot, online }: { snapshot: Snapshot; online:
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Card icon={<FiUsers />} label="Peers" value={total} sub="configured on the interface" accent="text-sky-400" />
       <Card icon={<FiWifi />} label="Online" value={online} sub={total ? `${Math.round((online / total) * 100)}% connected` : undefined} accent="text-emerald-400" />
-      <Card icon={<FiWifiOff />} label="Offline" value={total - online} accent="text-rose-400" sub={`no handshake in ${snapshot.onlineThresholdSeconds / 60} min`} />
+      <Card icon={<FiWifiOff />} label="Offline" value={total - online} accent="text-rose-400" sub={`no traffic for ${snapshot.activityTimeoutSeconds}s`} />
       <Card
         icon={<FiServer />}
         label="Server"

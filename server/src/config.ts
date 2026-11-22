@@ -32,8 +32,9 @@ const schema = z.object({
   WG_CONFIG_PATH: z.string().default(''),
   WG_MOCK: bool,
 
-  POLL_INTERVAL_SECONDS: z.coerce.number().int().min(5).default(15),
+  POLL_INTERVAL_SECONDS: z.coerce.number().int().min(2).default(5),
   ONLINE_THRESHOLD_SECONDS: z.coerce.number().int().min(30).default(180),
+  ACTIVITY_TIMEOUT_SECONDS: z.coerce.number().int().min(10).default(40),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -69,4 +70,5 @@ export const config = {
   allowedEmails: new Set(env.ALLOWED_EMAILS.map((e) => e.toLowerCase())),
   pollIntervalMs: env.POLL_INTERVAL_SECONDS * 1000,
   onlineThresholdMs: env.ONLINE_THRESHOLD_SECONDS * 1000,
+  activityTimeoutMs: env.ACTIVITY_TIMEOUT_SECONDS * 1000,
 }

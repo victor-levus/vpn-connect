@@ -10,6 +10,8 @@ export interface Peer {
   txBytes: number
   persistentKeepalive: number | null
   lastOnlineAt: number | null
+  /** Last time the peer sent us any bytes (keepalives included). */
+  lastActivityAt: number | null
 }
 
 export interface Snapshot {
@@ -21,6 +23,7 @@ export interface Snapshot {
   peers: Peer[]
   generatedAt: number
   onlineThresholdSeconds: number
+  activityTimeoutSeconds: number
   pollIntervalSeconds: number
   error: string | null
 }

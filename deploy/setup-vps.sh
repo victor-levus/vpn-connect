@@ -60,7 +60,11 @@ git config --system --add safe.directory "$APP_DIR" || true
 
 step "Allowing $APP_USER to run 'wg show $WG_IFACE dump' (and nothing else)"
 SUDOERS=/etc/sudoers.d/vpn-connect
-echo "$APP_USER ALL=(root) NOPASSWD: $WG_BIN show $WG_IFACE dump" > "$SUDOERS.tmp"
+# The API polls every few seconds, so don't log each call (this user can run nothing else).
+cat > "$SUDOERS.tmp" <<EOS
+Defaults:$APP_USER !log_allowed, !pam_session
+$APP_USER ALL=(root) NOPASSWD: $WG_BIN show $WG_IFACE dump
+EOS
 chmod 0440 "$SUDOERS.tmp"
 visudo -cf "$SUDOERS.tmp"
 mv "$SUDOERS.tmp" "$SUDOERS"

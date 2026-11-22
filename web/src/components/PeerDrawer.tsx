@@ -8,6 +8,8 @@ import { StatusDot, type PeerState } from './StatusDot'
 interface Props {
   peer: Peer
   state: PeerState
+  quiet: boolean
+  activityTimeoutSeconds: number
   now: number
   onClose: () => void
 }
@@ -21,7 +23,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-export function PeerDrawer({ peer, state, now, onClose }: Props) {
+export function PeerDrawer({ peer, state, quiet, activityTimeoutSeconds, now, onClose }: Props) {
   const [name, setName] = useState(peer.name ?? '')
   const [notes, setNotes] = useState(peer.notes ?? '')
   const [saving, setSaving] = useState(false)
@@ -87,12 +89,14 @@ export function PeerDrawer({ peer, state, now, onClose }: Props) {
         </div>
 
         <div className="space-y-6 px-5 py-5">
-          {peer.persistentKeepalive === null && (
+          {quiet && (
             <div className="flex gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-200">
               <FiAlertTriangle className="mt-0.5 shrink-0" />
               <p>
-                No keepalive is set for this peer, so it may show offline while idle. Add{' '}
-                <code className="rounded bg-black/30 px-1">PersistentKeepalive = 25</code> to the client's [Peer] section.
+                No traffic from this peer for over {activityTimeoutSeconds}s. If it was just switched off, that's expected.
+                If it's actually still connected, add{' '}
+                <code className="rounded bg-black/30 px-1">PersistentKeepalive = 25</code> to the [Peer] section of the
+                client's own config so it keeps reporting in while idle.
               </p>
             </div>
           )}
@@ -135,11 +139,11 @@ export function PeerDrawer({ peer, state, now, onClose }: Props) {
           <dl className="grid grid-cols-2 gap-4 rounded-xl border border-white/5 bg-slate-900/40 p-4">
             <Field label="Tunnel IP"><span className="font-mono">{peer.allowedIps.join(', ') || '—'}</span></Field>
             <Field label="Endpoint"><span className="break-all font-mono">{peer.endpoint ?? '—'}</span></Field>
+            <Field label="Last seen">{timeAgo(peer.lastActivityAt ?? peer.latestHandshake, now)}</Field>
             <Field label="Last handshake">{timeAgo(peer.latestHandshake, now)}</Field>
-            <Field label="Last online">{peer.lastOnlineAt ? timeAgo(peer.lastOnlineAt, now) : 'never'}</Field>
             <Field label="Received">{bytes(peer.rxBytes)}</Field>
             <Field label="Sent">{bytes(peer.txBytes)}</Field>
-            <Field label="Keepalive">{peer.persistentKeepalive ? `${peer.persistentKeepalive}s` : 'off'}</Field>
+            <Field label="Server keepalive">{peer.persistentKeepalive ? `${peer.persistentKeepalive}s` : 'off'}</Field>
             <Field label="Uptime (24h)">
               {history?.uptime24h != null ? `${(history.uptime24h * 100).toFixed(1)}%` : '—'}
             </Field>
@@ -163,7 +167,7 @@ export function PeerDrawer({ peer, state, now, onClose }: Props) {
               <ol className="space-y-0 border-l border-white/10 pl-4">
                 {history.events.map((e) => (
                   <li key={e.at} className="relative pb-3 last:pb-0">
-                    <span className={`absolute -left-[21px] top-1.5 size-2.5 rounded-full ring-4 ring-slate-950 ${e.online ? 'bg-emerald-400' : 'bg-rose-500'}`} />
+                    <span className={`absolute -left-5.25 top-1.5 size-2.5 rounded-full ring-4 ring-slate-950 ${e.online ? 'bg-emerald-400' : 'bg-rose-500'}`} />
                     <div className="text-sm text-slate-200">{e.online ? 'Came online' : 'Went offline'}</div>
                     <div className="text-xs text-slate-500">{dateTime(e.at)} · {timeAgo(e.at, now)}</div>
                   </li>

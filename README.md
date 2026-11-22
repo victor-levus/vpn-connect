@@ -16,13 +16,25 @@ React app (Firebase Hosting) ──HTTPS + Firebase ID token──▶ nginx :443
 
 ## How "online" works
 
-The API runs `wg show wg0 dump` every 15 s. A peer is **online** if its last handshake was within
-**180 s**. When a peer changes between online and offline, the API stores an event, which powers the
-activity timeline and the 24 h uptime figure.
+The API runs `wg show wg0 dump` every **5 s**. A peer is **online** when both of these are true:
 
-> **Every client needs `PersistentKeepalive = 25`** in the `[Peer]` section of *its own* config.
-> Without it, an idle but connected peer stops handshaking and will show as offline. The dashboard
-> flags peers that have no keepalive set.
+1. Its last handshake was within **180 s**. WireGuard re-handshakes about every 2 minutes, so this
+   alone is too slow to notice a client going away.
+2. Its *received bytes* counter grew within the last **40 s**. This is what makes detection fast. With
+   `PersistentKeepalive = 25`, a connected client sends at least one packet every 25 s even when idle,
+   so the counter only stops when the client is gone.
+
+A switched-off client therefore shows **offline within about 40–45 s**. To tune this, set
+`POLL_INTERVAL_SECONDS` and `ACTIVITY_TIMEOUT_SECONDS` in `server/.env`. Keep the timeout above
+keepalive + poll interval + a few seconds of slack. For example, a client keepalive of 10 allows a
+timeout of 20.
+
+When a peer changes between online and offline, the API stores an event, which powers the activity
+timeline and the 24 h uptime figure.
+
+> **Every client needs `PersistentKeepalive = 25`** (or lower) in the `[Peer]` section of *its own*
+> config. Without it, an idle but connected client sends nothing and will be shown as offline. The
+> dashboard flags peers whose handshake is current but that have gone quiet.
 
 **Peer names:** WireGuard only knows public keys. Click a peer in the dashboard to give it a name and
 notes. Names are stored in SQLite and survive restarts. (Alternatively, set `WG_CONFIG_PATH` to read

@@ -18,25 +18,33 @@ export function Dashboard() {
   const [query, setQuery] = useState('')
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
-  // Re-check "online" locally between updates. Handshake age is measured on the server's clock
+  // Re-check "online" locally between updates. Ages are measured on the server's clock
   // (generatedAt) plus time elapsed on ours since it arrived, so clock skew doesn't matter.
   const rows: PeerRow[] = useMemo(() => {
     if (!snapshot) return []
     const elapsed = now - receivedAt
-    const threshold = snapshot.onlineThresholdSeconds * 1000
+    const age = (t: number | null) => (t === null ? Infinity : snapshot.generatedAt - t + elapsed)
+    const handshakeLimit = snapshot.onlineThresholdSeconds * 1000
+    const activityLimit = snapshot.activityTimeoutSeconds * 1000
+    // Show times relative to our clock, shifted by the server/client offset.
+    const offset = receivedAt - snapshot.generatedAt
+    const shift = (t: number | null) => (t === null ? null : t + offset)
+
     return snapshot.peers.map((peer) => {
+      const handshakeFresh = age(peer.latestHandshake) < handshakeLimit
       let s: PeerState
       if (peer.latestHandshake === null) s = 'never'
-      else s = peer.online && snapshot.generatedAt - peer.latestHandshake + elapsed < threshold ? 'online' : 'offline'
-      // Show times relative to our clock, shifted by the server/client offset.
-      const offset = receivedAt - snapshot.generatedAt
+      else s = peer.online && handshakeFresh && age(peer.lastActivityAt) < activityLimit ? 'online' : 'offline'
       return {
         peer: {
           ...peer,
-          latestHandshake: peer.latestHandshake && peer.latestHandshake + offset,
-          lastOnlineAt: peer.lastOnlineAt && peer.lastOnlineAt + offset,
+          latestHandshake: shift(peer.latestHandshake),
+          lastOnlineAt: shift(peer.lastOnlineAt),
+          lastActivityAt: shift(peer.lastActivityAt),
         },
         state: s,
+        // Handshake still current but no traffic: either just switched off, or a client without keepalive.
+        quiet: s === 'offline' && handshakeFresh,
       }
     })
   }, [snapshot, receivedAt, now])
@@ -105,8 +113,8 @@ export function Dashboard() {
             <PeerList rows={visible} now={now} onSelect={(p) => setSelectedKey(p.publicKey)} />
 
             <p className="text-center text-xs text-slate-600">
-              Updated {timeAgo(receivedAt, now)} · polling every {snapshot.pollIntervalSeconds}s · online = handshake within{' '}
-              {snapshot.onlineThresholdSeconds / 60} min
+              Updated {timeAgo(receivedAt, now)} · checking every {snapshot.pollIntervalSeconds}s · offline after{' '}
+              {snapshot.activityTimeoutSeconds}s without traffic
             </p>
           </>
         )}
@@ -117,6 +125,8 @@ export function Dashboard() {
           key={selected.peer.publicKey}
           peer={selected.peer}
           state={selected.state}
+          quiet={selected.quiet}
+          activityTimeoutSeconds={snapshot?.activityTimeoutSeconds ?? 40}
           now={now}
           onClose={() => setSelectedKey(null)}
         />
