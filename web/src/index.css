@@ -1,15 +1,179 @@
 @import 'tailwindcss';
 
-@theme {
+/* Dark mode is driven by a `.dark` class on <html> (set by the theme toggle). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic colors point at CSS variables, so every utility (bg-surface, text-muted, border-line…)
+   switches with the theme automatically. */
+@theme inline {
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-ok: var(--ok);
+  --color-bad: var(--bad);
+  --color-warn: var(--warn);
+  --color-idle: var(--idle);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+  --animate-float: float 18s ease-in-out infinite;
+  --animate-float-slow: float 26s ease-in-out infinite reverse;
 }
 
 :root {
+  color-scheme: light;
+  --bg: #f6f7fb;
+  --surface: rgb(255 255 255 / 0.82);
+  --elevated: #ffffff;
+  --sunken: #eef0f6;
+  --line: rgb(15 23 42 / 0.08);
+  --line-strong: rgb(15 23 42 / 0.14);
+  --fg: #0b1220;
+  --muted: #5b6476;
+  --subtle: #8b93a5;
+
+  --brand: #10b981;
+  --brand-2: #06b6d4;
+  --ok: #10b981;
+  --bad: #f43f5e;
+  --warn: #f59e0b;
+  --idle: #94a3b8;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12);
+  --shadow-pop: 0 24px 64px -16px rgb(15 23 42 / 0.28);
+  --grid-dot: rgb(15 23 42 / 0.07);
+  --glow-a: rgb(16 185 129 / 0.18);
+  --glow-b: rgb(6 182 212 / 0.14);
+}
+
+.dark {
   color-scheme: dark;
+  --bg: #060a13;
+  --surface: rgb(17 24 39 / 0.62);
+  --elevated: #0f1626;
+  --sunken: rgb(255 255 255 / 0.04);
+  --line: rgb(255 255 255 / 0.07);
+  --line-strong: rgb(255 255 255 / 0.13);
+  --fg: #eef2f8;
+  --muted: #94a0b6;
+  --subtle: #5f6b82;
+
+  --brand: #34d399;
+  --brand-2: #22d3ee;
+  --ok: #34d399;
+  --bad: #fb7185;
+  --warn: #fbbf24;
+  --idle: #64748b;
+
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 32px 80px -16px rgb(0 0 0 / 0.75);
+  --grid-dot: rgb(255 255 255 / 0.05);
+  --glow-a: rgb(52 211 153 / 0.14);
+  --glow-b: rgb(34 211 238 / 0.10);
+}
+
+html {
+  background: var(--bg);
 }
 
 body {
-  @apply bg-slate-950 font-sans text-slate-200 antialiased;
-  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgb(16 185 129 / 0.08), transparent);
+  @apply min-h-dvh bg-bg font-sans text-fg antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Soft background: dotted grid fading out, plus two slow-drifting glows. */
+.app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 80%);
+}
+.app-backdrop::before,
+.app-backdrop::after {
+  content: '';
+  position: absolute;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 9999px;
+  filter: blur(90px);
+}
+.app-backdrop::before {
+  top: -25vmax;
+  left: -10vmax;
+  background: var(--glow-a);
+  animation: var(--animate-float);
+}
+.app-backdrop::after {
+  top: -20vmax;
+  right: -15vmax;
+  background: var(--glow-b);
+  animation: var(--animate-float-slow);
+}
+
+.text-gradient {
+  background: linear-gradient(100deg, var(--brand), var(--brand-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--sunken) 0%, var(--line-strong) 50%, var(--sunken) 100%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(6vmax, 4vmax) scale(1.08); }
+  66% { transform: translate(-4vmax, 6vmax) scale(0.95); }
+}
+
+::selection {
+  background: color-mix(in oklab, var(--brand) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-backdrop::before,
+  .app-backdrop::after,
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* Set for one frame while switching themes so everything flips together. */
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
+}
+
+/* Animated theme switch: the new theme is revealed in a circle from the toggle (View Transitions API). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
