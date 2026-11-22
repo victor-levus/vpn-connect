@@ -3,7 +3,7 @@
 A dashboard showing which peers on your WireGuard VPN are online.
 
 ```
-React app (Firebase Hosting) ──HTTPS + Firebase ID token──▶ Caddy :443 ──▶ Express API :4807 (VPS)
+React app (Firebase Hosting) ──HTTPS + Firebase ID token──▶ nginx :443 ──▶ Express API :4807 (VPS)
                                                                             ├─ sudo wg show wg0 dump
                                                                             └─ SQLite via Prisma (names, notes, history)
 ```
@@ -12,7 +12,7 @@ React app (Firebase Hosting) ──HTTPS + Firebase ID token──▶ Caddy :443
 | --------- | -------------------------------------------------- | ------------------ |
 | `server/` | Express 5 + Prisma 7 (SQLite) API                  | Interserver VPS    |
 | `web/`    | Vite + React + Tailwind v4 + react-icons dashboard | Firebase Hosting   |
-| `deploy/` | Setup/update scripts, systemd unit, Caddyfile      | used on the VPS    |
+| `deploy/` | Setup/update scripts, systemd unit, nginx/Caddy conf | used on the VPS    |
 
 ## How "online" works
 
@@ -80,8 +80,9 @@ curl -fsSLO https://raw.githubusercontent.com/<you>/vpn-connect/main/deploy/setu
 sudo bash setup-vps.sh vpn-api.yourdomain.com <git-repo-url> wg0
 ```
 
-The script installs Node 24 and Caddy and creates a `wgmon` service user. It also adds a sudoers rule
-that allows **only** `wg show wg0 dump`, then sets up the systemd service and Caddy with automatic HTTPS.
+The script installs Node 24 and creates a `wgmon` service user. It also adds a sudoers rule
+that allows **only** `wg show wg0 dump`, then sets up the systemd service and HTTPS. If nginx is
+already running (as on the Interserver VPS), it adds an nginx site and runs certbot. Otherwise it uses Caddy.
 
 Next, edit `/opt/vpn-connect/server/.env`:
 
@@ -125,8 +126,8 @@ Open `https://<project>.web.app` and sign in with the Google account in `ALLOWED
 
 ```bash
 journalctl -u vpn-connect -f           # API logs (online/offline changes are logged)
-systemctl status vpn-connect caddy
-tail -f /var/log/caddy/vpn-api.log     # access log
+systemctl status vpn-connect nginx
+tail -f /var/log/nginx/access.log      # access log
 ```
 
 **Backups:** everything the app owns is in `/opt/vpn-connect/server/data/vpn.db`.

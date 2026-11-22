@@ -1,10 +1,7 @@
-# /etc/caddy/Caddyfile
+# /etc/caddy/Caddyfile  (used only when nginx is NOT already running on the server)
 # Replace vpn-api.example.com with your API subdomain. Its DNS A record must point at the VPS
-# before Caddy starts, so Let's Encrypt can issue the certificate.
+# before Caddy starts, so Let's Encrypt can issue the certificate. Logs go to: journalctl -u caddy
 vpn-api.example.com {
 	reverse_proxy 127.0.0.1:4807
 	header -Server
-	log {
-		output file /var/log/caddy/vpn-api.log
-	}
 }

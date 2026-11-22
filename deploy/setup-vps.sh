@@ -33,8 +33,13 @@ if ! command -v node >/dev/null || [[ "$(node -p 'process.versions.node.split(".
 fi
 node -v
 
-step "Installing Caddy (if needed)"
-if ! command -v caddy >/dev/null; then
+# If nginx already serves other sites on 80/443, add the API as an nginx site (certbot for HTTPS).
+# Otherwise use Caddy, which handles HTTPS by itself.
+if systemctl is-active --quiet nginx; then PROXY=nginx; else PROXY=caddy; fi
+echo "Reverse proxy: $PROXY"
+
+if [[ $PROXY == caddy ]] && ! command -v caddy >/dev/null; then
+  step "Installing Caddy"
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
   chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg /etc/apt/sources.list.d/caddy-stable.list
@@ -81,11 +86,25 @@ sed -e "s|wg-quick@wg0|wg-quick@$WG_IFACE|" "$APP_DIR/deploy/vpn-connect.service
 systemctl daemon-reload
 systemctl enable vpn-connect
 
-step "Configuring Caddy for $API_DOMAIN"
-mkdir -p /var/log/caddy && chown caddy:caddy /var/log/caddy
-sed "s|vpn-api.example.com|$API_DOMAIN|" "$APP_DIR/deploy/Caddyfile" > /etc/caddy/Caddyfile
-caddy validate --config /etc/caddy/Caddyfile
-systemctl reload caddy || systemctl restart caddy
+if [[ $PROXY == nginx ]]; then
+  step "Adding nginx site for $API_DOMAIN"
+  command -v certbot >/dev/null || apt-get install -y certbot python3-certbot-nginx
+  SITE=/etc/nginx/sites-available/vpn-connect
+  if [[ ! -f $SITE ]]; then
+    sed "s|vpn-api.example.com|$API_DOMAIN|" "$APP_DIR/deploy/nginx-vpn-api.conf" > "$SITE"
+    ln -sf "$SITE" /etc/nginx/sites-enabled/vpn-connect
+  fi
+  nginx -t
+  systemctl reload nginx
+  step "Getting an HTTPS certificate for $API_DOMAIN"
+  certbot --nginx -d "$API_DOMAIN" --redirect --keep-until-expiring
+else
+  step "Configuring Caddy for $API_DOMAIN"
+  sed "s|vpn-api.example.com|$API_DOMAIN|" "$APP_DIR/deploy/Caddyfile" > /etc/caddy/Caddyfile
+  caddy validate --config /etc/caddy/Caddyfile
+  systemctl enable caddy
+  systemctl reload caddy || systemctl restart caddy
+fi
 
 if [[ "${NEED_ENV_EDIT:-0}" == 1 ]]; then
   cat <<EOF
