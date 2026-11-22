@@ -9,8 +9,13 @@ as_app() { sudo -u "$APP_USER" -H bash -c "cd '$APP_DIR/server' && $*"; }
 
 [[ $EUID -eq 0 ]] || { echo "Run as root (sudo bash $0)"; exit 1; }
 
-echo "==> Pulling latest code"
-sudo -u "$APP_USER" git -C "$APP_DIR" pull --ff-only
+# Pull first, then re-run the freshly pulled copy of this script. Otherwise bash keeps
+# executing the old version that was loaded before the pull.
+if [[ "${1:-}" != "--pulled" ]]; then
+  echo "==> Pulling latest code"
+  sudo -u "$APP_USER" git -C "$APP_DIR" pull --ff-only
+  exec bash "$APP_DIR/deploy/update.sh" --pulled
+fi
 
 echo "==> Installing dependencies"
 as_app "npm ci --no-audit --no-fund"
